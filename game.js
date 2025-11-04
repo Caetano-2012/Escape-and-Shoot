@@ -2,8 +2,8 @@
 
 let player;
 let enemy;
-let swords;
-let fireballs;
+//let swords;
+//let fireballs;
 let cursors;
 let score = 0;
 let enemyLives = 5;
@@ -46,30 +46,33 @@ function preload() {
 function create() {
     player = this.physics.add.sprite(1400, 300, 'player');
     player.setScale(0.5);
-
+    player.setCollideWorldBounds(true);
+    
     enemy = this.physics.add.sprite(100, 280, 'enemy');
     enemy.setScale(0.9);
-
-    swords = this.physics.add.group({
-        defaultKey: "sword",
-        maxSize: 3,
-        runChildUpdate: true
-    })
-
-    fireballs = this.physics.add.group({
-        defaultKey: "fireball",
-        maxSize: 5,
-        runChildUpdate: true
-    })
-
-    player.setCollideWorldBounds(true);
-
     enemy.setCollideWorldBounds(true);
     enemy.setVelocityY(250);
     enemy.setBounce(1);
-    
+
+    this.swords = this.physics.add.group({
+        defaultKey: "sword",
+        maxSize: 3,
+        //runChildUpdate: true
+    })
+
+    this.fireballs = this.physics.add.group({
+        defaultKey: "fireball",
+        maxSize: 5,
+        //runChildUpdate: true
+    })
+
     cursors = this.input.keyboard.createCursorKeys();
     this.input.keyboard.on("keydown-SPACE", shoot, this);
+
+    this.physics.add.overlap(this.swords, enemy, hitEnemy, null, this);
+    scoreText = this.add.text(20,20,"Pontuação: 0", {fontSize: "24px", fill: "#fff"});
+    enemyLivesText = this.add.text(20,50, "Enemy Lives: 5", {fontSize: "24px", fill: "#fff"});
+    victoryText = this.add.text(600, 320, "", {fontSize: "48px", fill: "#0f0"});
 }
 
 function update() {
@@ -88,7 +91,7 @@ function update() {
 }
 
 function shoot() {
-    let sword = swords.get(player.x +20, player.y);
+    let sword = this.swords.get(player.x +20, player.y);
 
     if(sword) {
         sword.setActive(true).setVisible(true);
@@ -97,7 +100,26 @@ function shoot() {
     }
 }
 
-/*
-Paramos na parte de destruir o projétil após sair da tela
-Deu erro de reconhecimento do comando "children"
-Linha 83*/
+function hitEnemy(sword, enemy) {
+    if(!sword.active || !enemy.active || enemy.isInvulnerable) return;
+
+    sword.disableBody(true, true);
+    //sword.setActive(false).setVisible(false);
+    //sword.destroy;
+    enemy.isInvulnerable = true;
+    enemy.setTint(0xff0000);
+    this.time.delayedCall(200, () => {
+        enemy.clearTint();
+        enemy.isInvulnerable = false;
+    }, [], this);
+
+    enemyLives -= 1;
+    score += 100;
+    scoreText.setText("Pontuação: " +score);
+    enemyLivesText.setText("Enemy Lives: " + enemyLives);
+    
+    if(enemyLives > 0) return;
+    enemy.disableBody(true, true);
+    victoryText.setText("Você venceu!");
+}
+// Inimigo desaparecendo após ataque.
