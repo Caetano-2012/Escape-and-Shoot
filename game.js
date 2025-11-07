@@ -86,6 +86,10 @@ function update() {
         enemy.setVelocityY(250);
     }
     this.swords.children.each(function(sword) {
+        if(!sword.active && sword.x < 0) {
+            sword.body.enable = true;
+            sword.setPosition(player.x + 20, player.y)
+        }
         if(sword.active && sword.x < 0) {
             sword.destroy();
         }
@@ -108,7 +112,8 @@ function hitEnemy(sword, enemy) {
     //sword.setActive(false).setVisible(false);
     //sword.destroy;
     enemy.isInvulnerable = true;
-    sword.disableBody(true, true);
+    sword.setActive(false).setVisible(false);
+    sword.body.enable = false;
     enemy.setTint(0xff0000);
     
 
