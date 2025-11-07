@@ -88,6 +88,9 @@ function update() {
             sword.destroy();
         }
     }, this)
+    if(!enemy.visible) {
+        enemy.setVisible(true);
+    }
 }
 
 function shoot() {
@@ -103,23 +106,34 @@ function shoot() {
 function hitEnemy(sword, enemy) {
     if(!sword.active || !enemy.active || enemy.isInvulnerable) return;
 
-    sword.disableBody(true, true);
     //sword.setActive(false).setVisible(false);
     //sword.destroy;
     enemy.isInvulnerable = true;
+    sword.disableBody(true, true);
     enemy.setTint(0xff0000);
-    this.time.delayedCall(200, () => {
-        enemy.clearTint();
-        enemy.isInvulnerable = false;
-    }, [], this);
+    
 
-    enemyLives -= 1;
+    enemyLives = Math.max(0, enemyLives -1);
     score += 100;
     scoreText.setText("Pontuação: " +score);
     enemyLivesText.setText("Enemy Lives: " + enemyLives);
     
-    if(enemyLives > 0) return;
-    enemy.disableBody(true, true);
+    if(enemyLives > 0) {
+        this.time.delayedCall(200, () => {
+            enemy.clearTint();
+            enemy.isInvulnerable = false;
+            if(enemy.body.velocity.y === 0) {
+                const direction = Phaser.Math.Between(0, 1) === 0 ? -250 : 250;
+                enemy.setVelocityY(direction);
+            }
+        }  , [], this);
+        return;
+    }
+    enemy.setTint(0x555555);
+    enemy.setVelocity(0);
+    enemy.isInvulnerable = true;
+    enemy.setActive(true);
+    enemy.setVisible(true);
     victoryText.setText("Você venceu!");
 }
 // Inimigo desaparecendo após ataque.
