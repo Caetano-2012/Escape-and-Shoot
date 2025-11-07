@@ -82,15 +82,14 @@ function update() {
     } else if (cursors.down.isDown) {
         player.y += 4;
     }
-    
+    if(enemy.active && enemy.body.velocity.y === 0 && !enemy.isInvulnerable) {
+        enemy.setVelocityY(250);
+    }
     this.swords.children.each(function(sword) {
         if(sword.active && sword.x < 0) {
             sword.destroy();
         }
     }, this)
-    if(!enemy.visible) {
-        enemy.setVisible(true);
-    }
 }
 
 function shoot() {
