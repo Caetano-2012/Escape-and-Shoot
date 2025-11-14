@@ -55,15 +55,17 @@ function create() {
     enemy.setBounce(1);
 
     this.swords = this.physics.add.group({
+        classType: Phaser.Physics.Arcade.Image, 
         defaultKey: "sword",
-        maxSize: 3,
-        //runChildUpdate: true
+        maxSize: 6,
+        runChildUpdate: false
     })
 
     this.fireballs = this.physics.add.group({
+        classType: Phaser.Physics.Arcade.Image,
         defaultKey: "fireball",
         maxSize: 5,
-        //runChildUpdate: true
+        runChildUpdate: false
     })
 
     cursors = this.input.keyboard.createCursorKeys();
@@ -85,7 +87,7 @@ function update() {
     if(enemy.active && enemy.body.velocity.y === 0 && !enemy.isInvulnerable) {
         enemy.setVelocityY(250);
     }
-    this.swords.children.each(function(sword) {
+    /*this.swords.children.each(function(sword) {
         if(!sword.active && sword.x < 0) {
             sword.body.enable = true;
             sword.setPosition(player.x + 20, player.y)
@@ -93,28 +95,50 @@ function update() {
         if(sword.active && sword.x < 0) {
             sword.destroy();
         }
-    }, this)
+    }, this)*/
+    this.swords.getChildren().forEach(function(s) {
+        if(s.active && s.x < -50) {
+            s.disableBody(true, true);
+            s.destroy();
+        }
+    }, this);
 }
 
 function shoot() {
-    let sword = this.swords.get(player.x +20, player.y);
+    //let sword = this.swords.get(player.x +20, player.y);
+    let sword = this.swords.get();
 
-    if(sword) {
+    /*if(sword) {
         sword.setActive(true).setVisible(true);
         sword.body.velocity.x = -400;
         sword.setScale(0.5);
-    }
+    }*/
+   if(!sword) return
+   sword.enableBody(true, player.x +20, player.y, true, true);
+   sword.setTexture("sword");
+   sword.setActive(true);
+   sword.setVisible(true);
+   sword.setScale(0.5);
+   sword.body.velocity.x = -400;
+   sword.body.setAllowGravity(false);
 }
 
-function hitEnemy(sword, enemy) {
-    if(!sword.active || !enemy.active || enemy.isInvulnerable) return;
+function hitEnemy(sword, en) {
+    console.log("hitEnemy chamando.", {swordActive: sword?.active, enemyActive: en?.active});
+    //if(!sword.active || !enemy.active || enemy.isInvulnerable) return;
 
     //sword.setActive(false).setVisible(false);
-    //sword.destroy;
-    enemy.isInvulnerable = true;
-    sword.setActive(false).setVisible(false);
-    sword.body.enable = false;
-    enemy.setTint(0xff0000);
+    //sword.destroy();
+    if(!sword || !en) return;
+    if(!sword.active ||!en.active || en.isInvulnerable) return;
+    if(sword.disableBody) {
+        sword.disableBody(true, true);
+    }
+    if(sword.destroy) {
+        sword.destroy()
+    }
+    en.isInvulnerable = true;
+    en.setAlpha(0.5);
     
 
     enemyLives = Math.max(0, enemyLives -1);
@@ -124,20 +148,26 @@ function hitEnemy(sword, enemy) {
     
     if(enemyLives > 0) {
         this.time.delayedCall(200, () => {
-            enemy.clearTint();
+            /*enemy.clearTint();
             enemy.isInvulnerable = false;
             if(enemy.body.velocity.y === 0) {
                 const direction = Phaser.Math.Between(0, 1) === 0 ? -250 : 250;
                 enemy.setVelocityY(direction);
-            }
+            }*/
+           if(en && en.setAlpha) en.setAlpha(1);
+           if(en) en.isInvulnerable = false;
+           if(en && en.body && en.body.velocity.y === 0) {
+            const direction = Phaser.Math.Between(0, 1) === 0 ? -250 : 250;
+            en.setVelocityY(direction);
+           }
         }  , [], this);
         return;
     }
-    enemy.setTint(0x555555);
-    enemy.setVelocity(0);
-    enemy.isInvulnerable = true;
-    enemy.setActive(true);
-    enemy.setVisible(true);
+    en.setTint(0x555555);
+    en.setVelocity(0, 0);
+    en.isInvulnerable = true;
+    //enemy.setActive(true);
+    //enemy.setVisible(true);
     victoryText.setText("Você venceu!");
 }
 // Inimigo desaparecendo após ataque.
