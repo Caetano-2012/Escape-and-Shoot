@@ -3,7 +3,7 @@
 let player;
 let enemy;
 //let swords;
-//let fireballs;
+let fireballs;
 let cursors;
 let score = 0;
 let enemyLives = 5;
@@ -57,23 +57,30 @@ function create() {
     this.swords = this.physics.add.group({
         classType: Phaser.Physics.Arcade.Image, 
         defaultKey: "sword",
-        maxSize: 6,
+        maxSize: 3,
         runChildUpdate: false
     })
 
-    this.fireballs = this.physics.add.group({
-        classType: Phaser.Physics.Arcade.Image,
+    fireballs = this.physics.add.group({
+        //classType: Phaser.Physics.Arcade.Image,
         defaultKey: "fireball",
-        maxSize: 5,
-        runChildUpdate: false
+        maxSize: 50,
+        //runChildUpdate: false
     })
 
     cursors = this.input.keyboard.createCursorKeys();
     this.input.keyboard.on("keydown-SPACE", shoot, this);
 
     this.physics.add.overlap(this.swords, enemy, hitEnemy, null, this);
+    this.physics.add.overlap(player, fireballs, hitPlayer, null, this);
+    this.time.addEvent({
+        delay: 2000,
+        callback: () => enemyShoot.call(this), 
+        loop: true
+    })
     scoreText = this.add.text(20,20,"Pontuação: 0", {fontSize: "24px", fill: "#fff"});
     enemyLivesText = this.add.text(20,50, "Enemy Lives: 5", {fontSize: "24px", fill: "#fff"});
+    livesText = this.add.text(1250, 20, "Player Lives: 3", {fontSize: "24px", fill: "#fff" })
     victoryText = this.add.text(600, 320, "", {fontSize: "48px", fill: "#0f0"});
 }
 
@@ -237,4 +244,42 @@ function hitEnemy(objA, objB) {
     target.isInvulnerable = true;
     victoryText.setText("Você venceu!");
 }
-// Inimigo desaparecendo após ataque.
+
+function hitPlayer(player, fireball) {
+    fireball.setActive(false);
+    fireball.setVisible(false);
+    fireball.body.stop();
+
+    console.log("Player atingido por fireball.")
+
+    playerLives--;
+    score -= 50;
+    scoreText.setText("Pontuação: " + score);
+    livesText.setText("Player Lives: " + playerLives);
+
+    if(playerLives <= 0) {
+        victoryText.setText("Você perdeu!")
+    }
+}
+
+function enemyShoot() {
+    const fireball = fireballs.get(enemy.x, enemy.y);
+    fireball.setScale(0.3)
+    if(!fireball) return;
+    fireball.setActive(true);
+    fireball.setVisible(true);
+    const speed = 250;
+    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, player.x, player.y);
+    fireball.body.velocity.x = Math.cos(angle) * speed;
+    fireball.body.velocity.y = Math.sin(angle) * speed;
+    fireball.rotation = angle;
+    fireball.setCollideWorldBounds(false);
+    fireball.body.onWorldBounds = true;
+    fireball.body.world.on("worldbounds", function(body) {
+        if(body.gameObject === fireball) {
+            fireball.setActive(false);
+            fireball.setVisible(false);
+            fireball.body.stop();
+        }
+    })
+}
