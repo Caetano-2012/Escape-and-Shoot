@@ -12,6 +12,7 @@ let scoreText;
 let livesText;
 let enemyLivesText;
 let victoryText;
+let playerInvulnerable = false;
 
 const config = {
     type: Phaser.AUTO,
@@ -252,11 +253,21 @@ function hitEnemy(objA, objB) {
 }
 
 function hitPlayer(player, fireball) {
-    if(!fireball.active) return;
+    if(playerInvulnerable) return;
+    if(!fireball.active || !fireball.body.enable) return;
     fireball.disableBody(true, true);
+    fireball.active = false;
+    fireball.visible = false;
     //fireball.setActive(false);
     //fireball.setVisible(false);
     //fireball.body.stop();
+    fireballs.children.each(f => {
+        if(f.active) {
+            f.disableBody(true, true);
+            f.active = false;
+            f.visible = false;
+        }
+    })
 
     console.log("Player atingido por fireball.")
 
@@ -264,6 +275,13 @@ function hitPlayer(player, fireball) {
     score -= 50;
     scoreText.setText("Pontuação: " + score);
     livesText.setText("Player Lives: " + playerLives);
+
+    playerInvulnerable = true;
+    player.setAlpha(0.5);
+    this.time.delayedCall(1000, () => {
+        playerInvulnerable = false;
+        player.setAlpha(1);
+    })
 
     if(playerLives <= 0) {
         victoryText.setDepth(9999)
@@ -296,7 +314,7 @@ function enemyShoot() {
     })*/
 }
 
-function endGame() {
+function endGame(scene) {
     scene.physics.pause();
     player.setTint(0xff0000);
     player.setVelocity(0, 0);
