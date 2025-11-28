@@ -82,6 +82,12 @@ function create() {
     enemyLivesText = this.add.text(20,50, "Enemy Lives: 5", {fontSize: "24px", fill: "#fff"});
     livesText = this.add.text(1250, 20, "Player Lives: 3", {fontSize: "24px", fill: "#fff" })
     victoryText = this.add.text(600, 320, "", {fontSize: "48px", fill: "#0f0"});
+    victoryText.setDepth(9999);
+    this.enemyShootTimer = this.time.addEvent({
+        delay: 2000,
+        callback: () => enemyShoot.call(this),
+        lopp: true
+    })
 }
 
 function update() {
@@ -246,28 +252,34 @@ function hitEnemy(objA, objB) {
 }
 
 function hitPlayer(player, fireball) {
-    fireball.setActive(false);
-    fireball.setVisible(false);
-    fireball.body.stop();
+    if(!fireball.active) return;
+    fireball.disableBody(true, true);
+    //fireball.setActive(false);
+    //fireball.setVisible(false);
+    //fireball.body.stop();
 
     console.log("Player atingido por fireball.")
 
-    playerLives--;
+    playerLives = Math.max(0, playerLives - 1);
     score -= 50;
     scoreText.setText("Pontuação: " + score);
     livesText.setText("Player Lives: " + playerLives);
 
     if(playerLives <= 0) {
-        victoryText.setText("Você perdeu!")
+        victoryText.setDepth(9999)
+        victoryText.setText("Você perdeu!");
+        endGame(this);
     }
 }
 
 function enemyShoot() {
     const fireball = fireballs.get(enemy.x, enemy.y);
-    fireball.setScale(0.3)
     if(!fireball) return;
+    fireball.enableBody(true, enemy.x, enemy.y, true, true);
+    fireball.setScale(0.3)
     fireball.setActive(true);
     fireball.setVisible(true);
+    fireball.body.setAllowGravity(false);
     const speed = 250;
     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, player.x, player.y);
     fireball.body.velocity.x = Math.cos(angle) * speed;
@@ -275,11 +287,21 @@ function enemyShoot() {
     fireball.rotation = angle;
     fireball.setCollideWorldBounds(false);
     fireball.body.onWorldBounds = true;
-    fireball.body.world.on("worldbounds", function(body) {
+    /*fireball.body.world.on("worldbounds", function(body) {
         if(body.gameObject === fireball) {
             fireball.setActive(false);
             fireball.setVisible(false);
             fireball.body.stop();
         }
-    })
+    })*/
+}
+
+function endGame() {
+    scene.physics.pause();
+    player.setTint(0xff0000);
+    player.setVelocity(0, 0);
+    enemy.setVelocity(0, 0);
+    if(scene.enemyShootTimer) {
+        scene.enemyShootTimer.remove(false);
+    }
 }
