@@ -2,7 +2,6 @@
 
 let player;
 let enemy;
-//let swords;
 let fireballs;
 let cursors;
 let score = 0;
@@ -13,6 +12,7 @@ let livesText;
 let enemyLivesText;
 let victoryText;
 let playerInvulnerable = false;
+let gameOver = false;
 
 const config = {
     type: Phaser.AUTO,
@@ -63,10 +63,8 @@ function create() {
     })
 
     fireballs = this.physics.add.group({
-        //classType: Phaser.Physics.Arcade.Image,
         defaultKey: "fireball",
-        maxSize: 50,
-        //runChildUpdate: false
+        maxSize: 50
     })
 
     cursors = this.input.keyboard.createCursorKeys();
@@ -92,6 +90,7 @@ function create() {
 }
 
 function update() {
+    if(gameOver) return;
 
     if(cursors.up.isDown) {
         player.y -= 4;
@@ -101,15 +100,7 @@ function update() {
     if(enemy.active && enemy.body.velocity.y === 0 && !enemy.isInvulnerable) {
         enemy.setVelocityY(250);
     }
-    /*this.swords.children.each(function(sword) {
-        if(!sword.active && sword.x < 0) {
-            sword.body.enable = true;
-            sword.setPosition(player.x + 20, player.y)
-        }
-        if(sword.active && sword.x < 0) {
-            sword.destroy();
-        }
-    }, this)*/
+
     this.swords.getChildren().forEach(function(s) {
         if(s.active && s.x < -50) {
             s.disableBody(true, true);
@@ -119,71 +110,18 @@ function update() {
 }
 
 function shoot() {
-    //let sword = this.swords.get(player.x +20, player.y);
+    
     let sword = this.swords.get();
 
-    /*if(sword) {
-        sword.setActive(true).setVisible(true);
-        sword.body.velocity.x = -400;
-        sword.setScale(0.5);
-    }*/
-   if(!sword) return
-   sword.enableBody(true, player.x +20, player.y, true, true);
-   sword.setTexture("sword");
-   sword.setActive(true);
-   sword.setVisible(true);
-   sword.setScale(0.5);
-   sword.body.velocity.x = -400;
-   sword.body.setAllowGravity(false);
+    if(!sword) return
+    sword.enableBody(true, player.x +20, player.y, true, true);
+    sword.setTexture("sword");
+    sword.setActive(true);
+    sword.setVisible(true);
+    sword.setScale(0.5);
+    sword.body.velocity.x = -400;
+    sword.body.setAllowGravity(false);
 }
-
-/*function hitEnemy(sword, en) {
-    console.log("hitEnemy chamando.", {swordActive: sword?.active, enemyActive: en?.active});
-    //if(!sword.active || !enemy.active || enemy.isInvulnerable) return;
-
-    //sword.setActive(false).setVisible(false);
-    //sword.destroy();
-    if(!sword || !en) return;
-    if(!sword.active ||!en.active || en.isInvulnerable) return;
-    if(sword.disableBody) {
-        sword.disableBody(true, true);
-    }
-    if(sword.destroy) {
-        sword.destroy()
-    }
-    en.isInvulnerable = true;
-    en.setAlpha(0.5);
-    
-
-    enemyLives = Math.max(0, enemyLives -1);
-    score += 100;
-    scoreText.setText("Pontuação: " +score);
-    enemyLivesText.setText("Enemy Lives: " + enemyLives);
-    
-    if(enemyLives > 0) {
-        this.time.delayedCall(200, () => {
-            /*enemy.clearTint();
-            enemy.isInvulnerable = false;
-            if(enemy.body.velocity.y === 0) {
-                const direction = Phaser.Math.Between(0, 1) === 0 ? -250 : 250;
-                enemy.setVelocityY(direction);
-            }
-           if(en && en.setAlpha) en.setAlpha(1);
-           if(en) en.isInvulnerable = false;
-           if(en && en.body && en.body.velocity.y === 0) {
-            const direction = Phaser.Math.Between(0, 1) === 0 ? -250 : 250;
-            en.setVelocityY(direction);
-           }
-        }  , [], this);
-        return;
-    }
-    en.setTint(0x555555);
-    en.setVelocity(0, 0);
-    en.isInvulnerable = true;
-    //enemy.setActive(true);
-    //enemy.setVisible(true);
-    victoryText.setText("Você venceu!");
-}*/
 
 function hitEnemy(objA, objB) {
     // DEBUG: ver quem chegou
@@ -250,40 +188,41 @@ function hitEnemy(objA, objB) {
     target.setVelocity(0, 0);
     target.isInvulnerable = true;
     victoryText.setText("Você venceu!");
+    endGame(this);
 }
 
 function hitPlayer(player, fireball) {
-    if(playerInvulnerable) return;
-    if(!fireball.active || !fireball.body.enable) return;
-    fireball.disableBody(true, true);
-    fireball.active = false;
-    fireball.visible = false;
-    //fireball.setActive(false);
-    //fireball.setVisible(false);
-    //fireball.body.stop();
-    fireballs.children.each(f => {
-        if(f.active) {
-            f.disableBody(true, true);
-            f.active = false;
-            f.visible = false;
-        }
-    })
 
-    console.log("Player atingido por fireball.")
+    if (playerInvulnerable) return;
+    if (!fireball.active || !fireball.body.enable) return;
+
+    // Impede o mesmo projétil de causar múltiplos hits
+    if (fireball.hasHit) return;  
+    fireball.hasHit = true;
+
+    // Agora sim desativa só o projétil que bateu
+    fireball.disableBody(true, true);
+    fireball.setActive(false);
+    fireball.setVisible(false);
+
+    console.log("Player atingido por fireball.");
 
     playerLives = Math.max(0, playerLives - 1);
     score -= 50;
     scoreText.setText("Pontuação: " + score);
     livesText.setText("Player Lives: " + playerLives);
 
+    // Invulnerabilidade do jogador
     playerInvulnerable = true;
     player.setAlpha(0.5);
-    this.time.delayedCall(1000, () => {
+
+    this.time.delayedCall(2000, () => {
         playerInvulnerable = false;
         player.setAlpha(1);
-    })
+    });
 
-    if(playerLives <= 0) {
+    // Game over
+    if (playerLives <= 0) {
         victoryText.setDepth(9999)
         victoryText.setText("Você perdeu!");
         endGame(this);
@@ -305,21 +244,37 @@ function enemyShoot() {
     fireball.rotation = angle;
     fireball.setCollideWorldBounds(false);
     fireball.body.onWorldBounds = true;
-    /*fireball.body.world.on("worldbounds", function(body) {
-        if(body.gameObject === fireball) {
-            fireball.setActive(false);
-            fireball.setVisible(false);
-            fireball.body.stop();
-        }
-    })*/
 }
 
 function endGame(scene) {
+
+    // Pausa toda a física (para tudo: inimigo, player, projéteis)
     scene.physics.pause();
-    player.setTint(0xff0000);
-    player.setVelocity(0, 0);
-    enemy.setVelocity(0, 0);
-    if(scene.enemyShootTimer) {
+
+    // Cancela o timer de disparo do inimigo
+    if (scene.enemyShootTimer) {
         scene.enemyShootTimer.remove(false);
     }
+
+    // Zera velocidade de tudo manualmente (caso algo já esteja em movimento)
+    if (player && player.body) {
+        player.setVelocity(0, 0);
+    }
+
+    if (enemy && enemy.body) {
+        enemy.setVelocity(0, 0);
+    }
+
+    fireballs.getChildren().forEach(fb => {
+        if (fb.body) fb.setVelocity(0, 0);
+    });
+
+    gameOver = true;
+
+    // Evita input do jogador após fim
+    scene.input.keyboard.enabled = false;
+    scene.physics.pause();
+    // Efeito visual opcional de congelamento
+    scene.cameras.main.setAlpha(0.9);
+
 }
